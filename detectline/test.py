@@ -52,14 +52,6 @@ class image_feature:
         cv2.imshow('cv_img', image_np)
         self.speed.publish(3)
         if angle is not None and speed is not None:
-            if abs(angle) >10:
-                if angle < 0:
-                    self.angle.publish(angle-10)
-                    self.speed.publish(3)
-                if angle > 0:
-                    self.angle.publish(angle+10)
-                    self.speed.publish(3)
-            else:
                 self.speed.publish(speed)
                 self.angle.publish(angle)
         cv2.waitKey(1)

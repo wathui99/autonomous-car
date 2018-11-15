@@ -30,7 +30,7 @@ def calculte(binaryImg, thresholdDetectedLength=5):
             midPoints = list_mid_points (suitLines)
             midPoint = average_mid_point(midPoints)
             cv2.circle(mid,(midPoint[0],midPoint[1]), 5, (0,0,255), -1)
-            angle,speed=caculate_angle_speed (binaryImg.shape[1],binaryImg.shape[0],midPoint,ratioAngle=2,maxSpeed=60,ratioSpeed=0.5)
+            angle,speed=caculate_angle_speed (binaryImg.shape[1],binaryImg.shape[0],midPoint,ratioAngle=1,maxSpeed=60,ratioSpeed=1)
             print (angle,speed)
     cv2.imshow("midPoint",mid)
     return angle,speed

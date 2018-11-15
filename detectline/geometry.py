@@ -55,5 +55,20 @@ def caculate_angle_speed (ImgShapeX,ImgShapeY,midPoint,ratioAngle,maxSpeed,ratio
 		speed=maxSpeed*ratioSpeed
 		return angle,speed
 	angle = angle * np.arctan(float(AC)/AB)/np.pi*180 * ratioAngle * (float(midPoint[1])/ImgShapeY)
-	speed = abs(float(maxSpeed) * float(90)/float(angle) * ratioSpeed)
+	if abs(angle) < 1:
+		speed=maxSpeed * ratioSpeed
+	elif abs(angle) < 2:
+		speed=maxSpeed * 0.98 * ratioSpeed
+	elif abs(angle) < 3:
+		speed=maxSpeed * 0.95 * ratioSpeed
+	elif abs(angle) < 4:
+		speed=maxSpeed * 0.92 * ratioSpeed
+	elif abs(angle) < 5:
+		speed=maxSpeed * 0.9 * ratioSpeed
+	elif abs(angle) < 6:
+		speed=maxSpeed * 0.88 * ratioSpeed
+	elif abs(angle) < 10:
+		speed=maxSpeed * 0.8 * ratioSpeed
+	else:
+		speed=maxSpeed * 0.5 * ratioSpeed
 	return angle,speed
