@@ -1,0 +1,22 @@
+<annotation>
+  <folder>Img</folder>
+  <filename>62.png</filename>
+  <segmented>0</segmented>
+  <size>
+    <width>320</width>
+    <height>240</height>
+    <depth>3</depth>
+  </size>
+  <object>
+    <name>strange_object</name>
+    <pose>Unspecified</pose>
+    <truncated>0</truncated>
+    <difficult>0</difficult>
+    <bndbox>
+      <xmin>199</xmin>
+      <ymin>68</ymin>
+      <xmax>228</xmax>
+      <ymax>98</ymax>
+    </bndbox>
+  </object>
+</annotation>

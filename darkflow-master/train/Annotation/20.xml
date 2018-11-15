@@ -1,0 +1,22 @@
+<annotation>
+  <folder>Img</folder>
+  <filename>20.png</filename>
+  <segmented>0</segmented>
+  <size>
+    <width>320</width>
+    <height>240</height>
+    <depth>3</depth>
+  </size>
+  <object>
+    <name>turn_right_sign</name>
+    <pose>Unspecified</pose>
+    <truncated>0</truncated>
+    <difficult>0</difficult>
+    <bndbox>
+      <xmin>194</xmin>
+      <ymin>44</ymin>
+      <xmax>230</xmax>
+      <ymax>76</ymax>
+    </bndbox>
+  </object>
+</annotation>
