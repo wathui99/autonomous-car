@@ -17,10 +17,31 @@ def max_sub_array (arr, startPos, endPos, windowLength):
 			max_sub_pos = i + int(windowLength/2)
 	return max_sub,max_sub_pos
 
+#co gang lap day cac lo trong:
+#dua vao diem dau va diem cuoi
+def fill_points(points):
+	empty_point = False
+	pos_before = -1 #vi tri ko phai lo trong truoc vi tri lo trong
+	point_before = 0 #gia tri cua points[pos_before]
+	for i in range(points.shape[0]):
+		if points[i][0] == -1: #points[i][0] -> chi lay phan x
+			empty_point = True
+			continue
+		if empty_point:
+			#if points[i] != -1    {do co continue va dieu kien == -1 o tren nen khong can dong nay}
+			distance = int((points[i][0] - point_before) / (i-pos_before))
+			for j in range(pos_before+1, i):
+				points[j][0] = points[j-1][0] + distance
+			empty_point = False
+		else:
+			point_before = points[i][0]
+			pos_before = i
+
 #tra ve 1 mang gom left line va right line
-#[
-#[[xleft,yleft],[xright,yright]], .... nWindows
-#]
+#
+# left = ([[xleft,yleft],[x2,y2],...])
+# right = ([[xright,yright],[x2,y2],...]), .... nWindows
+#
 #Chu y: khong nhan dien duoc tra ve None
 def detect_line(eyeBird_binary,nWindows=16):
 	img_heigh = eyeBird_binary.shape[0]
@@ -51,16 +72,16 @@ def detect_line(eyeBird_binary,nWindows=16):
 	if (first_right_point):
 		pre_line_right = max_sub_pos_right
 		right_line = np.array([[max_sub_pos_right, img_heigh]]) #x,y ban dau cua line phai
+
 	#bat dau tinh histogram tung mang va detect line
 	#do line tu phia duoi di len
 	for iWindow in range(1,nWindows+1):
 		sub_his = np.sum(eyeBird_binary[img_heigh - iWindow*window_heigh:img_heigh - (iWindow - 1)*window_heigh,:], axis=0)
-		print (sub_his)
 		#tinh toa do line trai truoc
 		if (first_left_point):
-			x=find_pos_line(histogram=sub_his, windowLength=10, threshold_line=20, 
+			x=find_pos_line(histogram=sub_his, windowLength=11, threshold_line=5, 
 				threshold_empty=3, length_empty=50, count_empty=20, 
-				pre_linePos=pre_line_left, max_2Lines=15)
+				pre_linePos=pre_line_left, max_2Lines=20)
 			coo = np.array([[x,img_heigh - window_heigh*iWindow]])
 			left_line = np.append(left_line,coo,axis=0) #them vao left line
 			#cap nhat vi tri line moi
@@ -68,14 +89,18 @@ def detect_line(eyeBird_binary,nWindows=16):
 				pre_line_left = x
 		#tinh toan toa do line phai
 		if (first_right_point):
-			x=find_pos_line(histogram=sub_his, windowLength=10, threshold_line=20, 
+			x=find_pos_line(histogram=sub_his, windowLength=11, threshold_line=5, 
 				threshold_empty=3, length_empty=50, count_empty=20, 
-				pre_linePos=pre_line_right, max_2Lines=15)
+				pre_linePos=pre_line_right, max_2Lines=20)
 			coo = np.array([[x,img_heigh - window_heigh*iWindow]])
 			right_line = np.append(right_line,coo,axis=0) #them vao left line
 			#cap nhat vi tri line moi
 			if (x!=-1): #neu tim thay vi tri moi thi -> cap nhat
 				pre_line_right = x
+	if left_line is not None:
+		fill_points(left_line)
+	if right_line is not None:
+		fill_points(right_line)
 	return left_line,right_line
 
 
@@ -135,12 +160,16 @@ def find_pos_line(histogram, windowLength, threshold_line, threshold_empty, leng
 		if (current_pos_max - int(windowLength/2) -i) < 0: #cham bien ben trai
 			good_leftSide=True
 		if (current_pos_max + int(windowLength/2) +i) >= his_shape: #cham bien ben phai
-			good_leftSide=True
-
-		if histogram[current_pos_max - int(windowLength/2) -i] <= threshold_empty:
-			count_empty_left+=1
-		if histogram[current_pos_max + int(windowLength/2) +i] <= threshold_empty:
-			count_empty_right+=1
+			good_rightSide=True
+		if good_leftSide != True:
+			if histogram[current_pos_max - int(windowLength/2) -i] <= threshold_empty:
+				count_empty_left+=1
+		if good_rightSide != True:
+			if histogram[current_pos_max + int(windowLength/2) +i] <= threshold_empty:
+				count_empty_right+=1
+		#neu ca 2 deu thoa dieu kien
+		if (good_leftSide and good_rightSide):
+			break
 
 	if count_empty_left >= count_empty:
 		good_leftSide=True
@@ -157,22 +186,25 @@ def find_pos_line(histogram, windowLength, threshold_line, threshold_empty, leng
 
 if __name__ == '__main__':
 
-	arr = np.array([0,1,0,1,2,5,6,7,1,0,0,0,0,0,1,0,1,5,6,6,4,2,3,3,3])
-	i = find_pos_line(histogram=arr, windowLength=3, threshold_line=10,
-		threshold_empty=2, length_empty=5, count_empty=3, 
-		pre_linePos=16, max_2Lines=3)
+	#arr = np.array([
+ #0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ #0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5,
+ #4, 0, 0, 2, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	#i = find_pos_line(histogram=arr, windowLength=7, threshold_line=7,
+		#threshold_empty=2, length_empty=10, count_empty=5, 
+		#pre_linePos=16, max_2Lines=10)
 
-	print (i)
+	#print (i)
 
-	bgr_img = cv2.imread('difficult.png')
+	bgr_img = cv2.imread('3575.png')
 
 	img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
 
 	thres_binary, roi_binary, eyeBird_binary = process_img(img)
 
 	left_line,right_line=detect_line(eyeBird_binary)
-	print(left_line)
-	print(right_line)
+	
+	print (suit_lines(left_line,right_line))
 
 	plt.subplot(2, 3, 1)
 	plt.imshow(img, cmap='gray', vmin=0, vmax=1)

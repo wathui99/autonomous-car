@@ -3,6 +3,38 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+
+def line_fit(binary_warped):
+	"""
+	Find and fit lane lines
+	"""
+	# Assuming you have created a warped binary image called "binary_warped"
+	# Take a histogram of the bottom half of the image
+	histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
+	# Create an output image to draw on and visualize the result
+	out_img = (np.dstack((binary_warped, binary_warped, binary_warped))*255).astype('uint8')
+	# Find the peak of the left and right halves of the histogram
+	# These will be the starting point for the left and right lines
+	midpoint = np.int(histogram.shape[0]/2)
+	leftx_base = np.argmax(histogram[0:midpoint])
+	rightx_base = np.argmax(histogram[midpoint:240]) +midpoint
+
+	# Choose the number of sliding windows
+	nwindows = 9
+	# Set height of windows
+	window_height = np.int(binary_warped.shape[0]/nwindows)
+	# Identify the x and y positions of all nonzero pixels in the image
+	nonzero = binary_warped.nonzero()
+	nonzeroy = np.array(nonzero[0])
+	nonzerox = np.array(nonzero[1])
+	# Current positions to be updated for each window
+	leftx_current = leftx_base
+	rightx_current = rightx_base
+	# Set the width of the windows +/- margin
+	margin = 20
+	# Set minimum number of pixels found to recenter window
+	minpix = 50
+
 	
 def region_of_interest(img):
 

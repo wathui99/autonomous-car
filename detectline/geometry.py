@@ -1,6 +1,25 @@
 import numpy as np
 import math
 
+#tim cac cap duong thang gan nhu song song o gan nhau 1 khoang khong qua thresholdDistance
+def suit_lines (leftPoints,rightPoints,thresholdParallel=2, thresholdDistance=16):
+	ret = None
+	if leftPoints is None or rightPoints is None:
+		return None
+	for iLeft in range(leftPoints.shape[0]-1):
+		for iRight in range(rightPoints.shape[0]-1):
+			if (abs((leftPoints[iLeft][0]-leftPoints[iLeft+1][0]) - (rightPoints[iRight][0]-rightPoints[iRight+1][0])) <= thresholdParallel and #|(x1-x2) - (x3-x4)| <= thresholdParallel => song song
+			   ((abs(leftPoints[iLeft][1] - rightPoints[iRight][1]) <= thresholdDistance and
+				abs(leftPoints[iLeft][1] - rightPoints[iRight+1][1]) <= thresholdDistance) or
+				(abs(leftPoints[iLeft+1][1] - rightPoints[iRight][1]) <= thresholdDistance and
+				abs(leftPoints[iLeft+1][1] - rightPoints[iRight+1][1]) <= thresholdDistance))):
+				if ret is None:
+					ret = np.array([[[[leftPoints[iLeft][0],leftPoints[iLeft][1]],[leftPoints[iLeft+1][0],leftPoints[iLeft+1][1]]],[[rightPoints[iRight][0],rightPoints[iRight][1]],[rightPoints[iRight+1][0],rightPoints[iRight+1][1]]]]])
+				else:
+					temp = np.array([[[[leftPoints[iLeft][0],leftPoints[iLeft][1]],[leftPoints[iLeft+1][0],leftPoints[iLeft+1][1]]],[[rightPoints[iRight][0],rightPoints[iRight][1]],[rightPoints[iRight+1][0],rightPoints[iRight+1][1]]]]])
+					ret = np.append(ret,temp,axis=0)
+	return ret
+
 def list_mid_points (suitPoint):
 	if suitPoint is None:
 		return None
