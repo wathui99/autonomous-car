@@ -22,7 +22,9 @@ import rospy
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import Float32
 
-from process import *
+from make_decide import make_decide
+
+stime = time.time()
 
 # We do not use cv_bridge it does not support CompressedImage in python
 # from cv_bridge import CvBridge, CvBridgeError
@@ -44,14 +46,24 @@ class image_feature:
        
 
     def callback(self, ros_data):
-        global preAngle,preSpeed
+        global stime
         np_arr = np.fromstring(ros_data.data, np.uint8)
         image_np = cv2.imdecode(np_arr, cv2.IMREAD_COLOR) # OpenCV >= 3.0:
-        out.write(image_np)
-        angle,speed= process_img (image_np)
+        #out.write(image_np)
+        angle,speed= make_decide (image_np)
+        print('FPS {:.1f}'.format(1 / (time.time() - stime)))
+        stime = time.time()
         cv2.imshow('cv_img', image_np)
         self.speed.publish(3)
         if angle is not None and speed is not None:
+            if abs(angle) >10:
+                if angle < 0:
+                    self.angle.publish(angle-10)
+                    self.speed.publish(3)
+                if angle > 0:
+                    self.angle.publish(angle+10)
+                    self.speed.publish(3)
+            else:
                 self.speed.publish(speed)
                 self.angle.publish(angle)
         cv2.waitKey(1)

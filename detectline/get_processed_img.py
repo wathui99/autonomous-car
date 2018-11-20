@@ -3,38 +3,6 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-
-def line_fit(binary_warped):
-	"""
-	Find and fit lane lines
-	"""
-	# Assuming you have created a warped binary image called "binary_warped"
-	# Take a histogram of the bottom half of the image
-	histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
-	# Create an output image to draw on and visualize the result
-	out_img = (np.dstack((binary_warped, binary_warped, binary_warped))*255).astype('uint8')
-	# Find the peak of the left and right halves of the histogram
-	# These will be the starting point for the left and right lines
-	midpoint = np.int(histogram.shape[0]/2)
-	leftx_base = np.argmax(histogram[0:midpoint])
-	rightx_base = np.argmax(histogram[midpoint:240]) +midpoint
-
-	# Choose the number of sliding windows
-	nwindows = 9
-	# Set height of windows
-	window_height = np.int(binary_warped.shape[0]/nwindows)
-	# Identify the x and y positions of all nonzero pixels in the image
-	nonzero = binary_warped.nonzero()
-	nonzeroy = np.array(nonzero[0])
-	nonzerox = np.array(nonzero[1])
-	# Current positions to be updated for each window
-	leftx_current = leftx_base
-	rightx_current = rightx_base
-	# Set the width of the windows +/- margin
-	margin = 20
-	# Set minimum number of pixels found to recenter window
-	minpix = 50
-
 	
 def region_of_interest(img):
 
@@ -185,8 +153,34 @@ def combined_thresh(img):
 	return combined, abs_bin, mag_bin, dir_bin, hls_bin # DEBUG
 
 
+def color_thr(s_img, v_img, s_threshold = (0,255), v_threshold = (0,255)):
+    s_binary = np.zeros_like(s_img).astype(np.uint8)
+    s_binary[(s_img > s_threshold[0]) & (s_img <= s_threshold[1])] = 1
+    v_binary = np.zeros_like(s_img).astype(np.uint8)
+    v_binary[(v_img > v_threshold[0]) & (v_img <= v_threshold[1])] = 1
+    col = ((s_binary == 1) | (v_binary == 1))
+    return col
+
+#the main thresholding operaion is performed here 
+def thresholding(img, s_threshold_min = 113, s_threshold_max = 255, v_threshold_min = 234, v_threshold_max = 255,  k_size = 5):
+    # Convert to HSV color space and separate the V channel
+	imshape = img.shape
+    #convert to HLS
+	hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+    #read saturation channel
+	s_channel = hls[:,:,2].astype(np.uint8)
+    #Convert to HSV
+	hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV).astype(np.float)
+    #read the value channel
+	v_channel = hsv[:,:,2].astype(np.uint8)
+    #threshold value and saturation
+	threshold_binary = color_thr(s_channel, v_channel, s_threshold=(s_threshold_min,s_threshold_max), v_threshold= (v_threshold_min,v_threshold_max)).astype(np.uint8)
+	return threshold_binary
+
 def process_img(img):
 	combined, _, _, _, _ = combined_thresh(img)
+	#combined = thresholding(img,230,240,220,255)
+	#combined = thresholding(img,s_threshold_min = s_min, s_threshold_max = s_max, v_threshold_min = v_min, v_threshold_max = v_max,  k_size = 5)
 	roi_binary=region_of_interest(combined)
 	warped, unwarped, m, m_inv = perspective_transform(roi_binary)
 	return combined, roi_binary, warped
