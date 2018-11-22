@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from fillter import get_processed_img
 import time
-
+import math
 
 #tinh tong max va tim vi tri max o giua cua mang con
 def max_sub_array (arr, startPos, endPos, windowLength):
@@ -20,23 +20,44 @@ def max_sub_array (arr, startPos, endPos, windowLength):
 
 #co gang lap day cac lo trong:
 #dua vao diem dau va diem cuoi
-def fill_points(points):
-	empty_point = False
-	pos_before = -1 #vi tri ko phai lo trong truoc vi tri lo trong
-	point_before = 0 #gia tri cua points[pos_before]
+def fill_points(points,distance_2Points=2):
+	first_point_flag=False
+	first_point=-1
+	pos_first_point=-1
+	conti=False
 	for i in range(points.shape[0]):
-		if points[i][0] == -1: #points[i][0] -> chi lay phan x
-			empty_point = True
-			continue
-		if empty_point:
-			#if points[i] != -1    {do co continue va dieu kien == -1 o tren nen khong can dong nay}
-			distance = int((points[i][0] - point_before) / (i-pos_before))
-			for j in range(pos_before+1, i):
+
+		if (points[i][0] != -1) and (first_point_flag==False):
+			first_point_flag = True
+			pos_first_point = i
+			first_point = points[i][0]
+		if (points[i][0] != -1) and first_point_flag:
+			if pos_first_point == i:
+				continue
+			for iPoint in range(distance_2Points):
+				if (i+iPoint) >= points.shape[0]:
+					conti = True
+					break
+				if (points[i+iPoint][0] == -1):
+					first_point_flag=True
+					pos_first_point = i
+					first_point = points[i][0]
+					continue
+
+			if conti:
+				conti=False
+				continue
+
+			if (i-pos_first_point) == 0:
+				first_point_flag=False
+				continue
+
+			distance = (points[i][0] - first_point) / (i-pos_first_point)
+			
+			for j in range(pos_first_point+1, i):
 				points[j][0] = points[j-1][0] + distance
-			empty_point = False
-		else:
-			point_before = points[i][0]
-			pos_before = i
+			first_point_flag=False
+			
 
 def find_first_point (arr, startPos, endPos, left_or_right, windowLength_line=7, windowLength_empty=20, step=2, threshold_empty=15, threshold_line=50):
 	#ben phai vi tri lan luot la:
@@ -180,7 +201,7 @@ def find_point_in_line (arr,start_point, left_or_right, step=1, distance_2Points
 	#deo' tim ra diem nao thoa
 	return -1
 
-
+#tim cac vi tri co the xuat hien cua duong line
 
 def find_line (binary,nWindows,first_point, left_or_right, bottom_or_top):
 	img_heigh = eyeBird_binary.shape[0]
@@ -192,6 +213,7 @@ def find_line (binary,nWindows,first_point, left_or_right, bottom_or_top):
 	pre_line_pos = 1 #dung de gia tang pham vi tim kiem
 
 	points_line=None
+	nPoints_line=0
 
 	for iWindow in range(1,nWindows+1):
 		#neu tim tu bottom len
@@ -202,9 +224,9 @@ def find_line (binary,nWindows,first_point, left_or_right, bottom_or_top):
 		if bottom_or_top == 1:
 			sub_his = np.sum(eyeBird_binary[(iWindow-1)*window_heigh:iWindow*window_heigh,:], axis=0)
 		x=find_point_in_line (arr=sub_his,start_point=pre_line, left_or_right=left_or_right, 
-								step=1, distance_2Points=10+(iWindow-pre_line_pos)*2, 
-								threshold_line=9, windowLength_line=7, 
-								threshold_empty=5, windowLength_empty=20)
+								step=2, distance_2Points=30+(iWindow-pre_line_pos)*2, 
+								threshold_line=8, windowLength_line=7, 
+								threshold_empty=3, windowLength_empty=20)
 		if points_line is None:
 			if bottom_or_top == 0:
 				y = img_heigh - window_heigh*iWindow
@@ -222,79 +244,135 @@ def find_line (binary,nWindows,first_point, left_or_right, bottom_or_top):
 		if (x!=-1): #neu tim thay vi tri moi thi -> cap nhat
 			pre_line = x
 			pre_line_pos = iWindow
+			nPoints_line += 1
+	if (bottom_or_top==0):
+		return points_line,nPoints_line
+	if (bottom_or_top==1):
+		#temp = points_line[::-1]
+		return points_line[::-1],nPoints_line
 
-	return points_line
+#case = 0: ben trai truoc
+#case = 1: ben phai truoc
 
-		
+#return left_line, right_line
+#(None,None),(None,right_line),(left_line,None): neu khong nhan dien duoc diem dau
+
+def get_line (eyeBird_binary,case,threshold_num_point=5):
+	img_heigh = eyeBird_binary.shape[0]
+	img_width = eyeBird_binary.shape[1]
+	if case == 0:
+		#lay tong cua nua phan duoi
+		half_bottom_histogram = np.sum(eyeBird_binary[int(img_heigh/2):img_heigh,:], axis=0)
+		#tim vi tri dau tien line ben trai
+		#nua duoi ben trai -> 1/2
+		left_x,_=find_first_point (arr=half_bottom_histogram, 
+				startPos=0, 
+				endPos=int(img_width/2), left_or_right=0, 
+				windowLength_line=7, windowLength_empty=20, step=2, 
+				threshold_empty=15, threshold_line=50)
+		if left_x is not None:
+			#nua duoi ke tu line trai qua phai -> cuoi
+			right_x,_=find_first_point (arr=half_bottom_histogram, 
+					startPos=left_x, 
+					endPos=img_width, left_or_right=1, 
+					windowLength_line=7, windowLength_empty=20, step=2, 
+					threshold_empty=15, threshold_line=50)
+			#tim thay diem bat dau line phai
+			if right_x is not None:
+				#do line phai tu duoi len
+				right_line, nRight = find_line (binary=eyeBird_binary,nWindows=16,first_point=right_x, 
+							left_or_right=1, bottom_or_top=0)
+				#do line trai tu duoi len
+				left_line, nLeft = find_line (binary=eyeBird_binary,nWindows=16,first_point=left_x, 
+							left_or_right=0, bottom_or_top=0)
+				#kiem tra xem so diem do duoc co thoa threshold_num_point hay ko
+				if nRight >= threshold_num_point and nLeft >= threshold_num_point:
+					fill_points(left_line)
+					fill_points(right_line)
+					return left_line,right_line
+				if nRight >= threshold_num_point:
+					#fill_points(right_line)
+					return None,right_line
+				if nLeft >= threshold_num_point:
+					#fill_points(left_line)
+					return left_line,None
+
+	if case == 1:
+		#lay tong cua nua phan duoi
+		half_bottom_histogram = np.sum(eyeBird_binary[int(img_heigh/2):img_heigh,:], axis=0)
+		#tim vi tri dau tien line ben trai
+		#nua duoi ben trai -> 1/2
+		right_x,_=find_first_point (arr=half_bottom_histogram, 
+				startPos=int(img_width/2), 
+				endPos=img_width, left_or_right=1, 
+				windowLength_line=7, windowLength_empty=20, step=2, 
+				threshold_empty=15, threshold_line=50)
+		if right_x is not None:
+			#nua duoi ke tu line trai qua phai -> cuoi
+			left_x,_=find_first_point (arr=half_bottom_histogram, 
+					startPos=0, 
+					endPos=right_x, left_or_right=0, 
+					windowLength_line=7, windowLength_empty=20, step=2, 
+					threshold_empty=15, threshold_line=50)
+			#tim thay diem bat dau line phai
+			if left_x is not None:
+				#do line phai tu duoi len
+				right_line, nRight = find_line (binary=eyeBird_binary,nWindows=16,first_point=right_x, 
+							left_or_right=1, bottom_or_top=0)
+				#do line trai tu duoi len
+				left_line, nLeft = find_line (binary=eyeBird_binary,nWindows=16,first_point=left_x, 
+							left_or_right=0, bottom_or_top=0)
+				#kiem tra xem so diem do duoc co thoa threshold_num_point hay ko
+				if nRight >= threshold_num_point and nLeft >= threshold_num_point:
+					fill_points(left_line)
+					fill_points(right_line)
+					return left_line,right_line
+				if nRight >= threshold_num_point:
+					#fill_points(right_line)
+					return None,right_line
+				if nLeft >= threshold_num_point:
+					#fill_points(left_line)
+					return left_line,None
+
+	#khong thoa bat cu dieu gi
+	return None,None
 
 #tra ve 1 mang gom left line va right line
 #
 # left = ([[xleft,yleft],[x2,y2],...])
 # right = ([[xright,yright],[x2,y2],...]), .... nWindows
 #
-#Chu y: khong nhan dien duoc tra ve None
-#step: toc do truot tren histogram.  cang cao toc do duyet cang nhanh - > do chinh xac giam
-def detect_line(eyeBird_binary):
-	img_heigh = eyeBird_binary.shape[0]
-	img_width = eyeBird_binary.shape[1]
-	#lay tong cua nua phan duoi
-	half_bottom_histogram = np.sum(eyeBird_binary[int(img_heigh/2):img_heigh,:], axis=0)
-	#tim vi tri dau tien line ben trai
-	left_first_point = find_first_point (arr=half_bottom_histogram, startPos=0, endPos=int(img_width/2), 
-										left_or_right=0, windowLength_line=7, windowLength_empty=20, 
-										step=2, threshold_empty=15, threshold_line=50)
-	#tim vi tri dau tien line ben phai
-	right_first_point = find_first_point (arr=half_bottom_histogram, startPos=0, endPos=int(img_width/2), 
-										left_or_right=1, windowLength_line=7, windowLength_empty=20, 
-										step=2, threshold_empty=15, threshold_line=50)
+def detect_line(eyeBird_binary,threshold_num_point=8):
 
-	#chieu cao cua cua so tinh tong
-	window_heigh = int(img_heigh/nWindows)
-	#khoi tao gia tri tra ve
-	left_line = None
-	right_line = None
-	#lay vi tri tim line truoc do
-	if (first_left_point):
-		pre_line_left = max_sub_pos_left #vi tri nay theo x
-		left_line = np.array([[max_sub_pos_left,img_heigh]]) #x,y ban dau cua line trai
+	line_detect = np.dstack((eyeBird_binary, eyeBird_binary, eyeBird_binary))*255
 
-	if (first_right_point):
-		pre_line_right = max_sub_pos_right
-		right_line = np.array([[max_sub_pos_right, img_heigh]]) #x,y ban dau cua line phai
+	left_line, right_line = get_line (eyeBird_binary,case=0,threshold_num_point=threshold_num_point)
 
-	#bat dau tinh histogram tung mang va detect line
-	#do line tu phia duoi di len
-	for iWindow in range(1,nWindows+1):
-		sub_his = np.sum(eyeBird_binary[img_heigh - iWindow*window_heigh:img_heigh - (iWindow - 1)*window_heigh,:], axis=0)
-		#tinh toa do line trai truoc
-		if (first_left_point):
-			x=find_pos_line(histogram=sub_his, windowLength=11, threshold_line=15, 
-				threshold_empty=3, length_empty=50, count_empty=20, 
-				pre_linePos=pre_line_left, max_2Lines=20, sideLine=0)
-			coo = np.array([[x,img_heigh - window_heigh*iWindow]])
-			left_line = np.append(left_line,coo,axis=0) #them vao left line
-			#cap nhat vi tri line moi
-			if (x!=-1): #neu tim thay vi tri moi thi -> cap nhat
-				pre_line_left = x
-		#tinh toan toa do line phai
-		if (first_right_point):
-			x=find_pos_line(histogram=sub_his, windowLength=11, threshold_line=15, 
-				threshold_empty=3, length_empty=50, count_empty=20, 
-				pre_linePos=pre_line_right, max_2Lines=20, sideLine=1)
-			coo = np.array([[x,img_heigh - window_heigh*iWindow]])
-			right_line = np.append(right_line,coo,axis=0) #them vao left line
-			#cap nhat vi tri line moi
-			if (x!=-1): #neu tim thay vi tri moi thi -> cap nhat
-				pre_line_right = x
-	if left_line is not None:
-		fill_points(left_line)
-	if right_line is not None:
-		fill_points(right_line)
+	if (left_line is not None) and (right_line is not None):
+		for point_right, point_left in zip(right_line,left_line):
+			cv2.circle(line_detect,(point_right[0],point_right[1]), 5, (0,255,0), -1)
+			cv2.circle(line_detect,(point_left[0],point_left[1]), 5, (0,0,255), -1)
+
+	else:
+		left_line, right_line = get_line (eyeBird_binary,case=1,threshold_num_point=threshold_num_point)
+		if (left_line is not None) and (right_line is not None):
+			for point_right, point_left in zip(right_line,left_line):
+				cv2.circle(line_detect,(point_right[0],point_right[1]), 5, (0,255,0), -1)
+				cv2.circle(line_detect,(point_left[0],point_left[1]), 5, (0,0,255), -1)
+	
+	cv2.imshow('line_detect',line_detect)
+	
+	if left_line is None or right_line is None:
+		return None,None
 	return left_line,right_line
 
 cap = cv2.VideoCapture('outpy.avi')
 if __name__ == '__main__':
 	n=0
+	#arr=np.array([[-1,0],[2,1],[3,2],[-1,3],[-1,4],[6,5],[-1,6],[-1,7]])
+	#fill_points(arr)
+	#print (arr)
+	side=-1
 	while(cap.isOpened()):
 		stime = time.time()
 		ret, image_np = cap.read()
@@ -302,44 +380,11 @@ if __name__ == '__main__':
 		res_binary,roi_binary,eyeBird_binary=get_processed_img(image_np)
 		img_heigh = eyeBird_binary.shape[0]
 		img_width = eyeBird_binary.shape[1]
-		#lay tong cua nua phan duoi
-		half_bottom_histogram = np.sum(eyeBird_binary[0:int(img_heigh/2),:], axis=0)
-
-		#sub=np.sum(eyeBird_binary[int(img_heigh/16)*15:img_heigh,:], axis=0)
-		#print (sub)
-	
-		right_x,_=find_first_point (arr=half_bottom_histogram, 
-			startPos=160, 
-			endPos=half_bottom_histogram.shape[0], left_or_right=1, 
-			windowLength_line=7, windowLength_empty=20, step=2, 
-			threshold_empty=15, threshold_line=50)
-		left_x,_=find_first_point (arr=half_bottom_histogram, 
-			startPos=0, 
-			endPos=160, left_or_right=0, 
-			windowLength_line=7, windowLength_empty=20, step=2, 
-			threshold_empty=15, threshold_line=50)
-
-		binary_img = np.dstack((eyeBird_binary, eyeBird_binary, eyeBird_binary))*255
-
-		if right_x is not None:
-			right_line = find_line (binary=eyeBird_binary,nWindows=16,first_point=right_x, 
-							left_or_right=1, bottom_or_top=1)
-			for point in right_line:
-				cv2.circle(binary_img,(point[0],point[1]), 5, (0,255,0), -1)
-		if left_x is not None:
-			left_line = find_line (binary=eyeBird_binary,nWindows=16,first_point=left_x, 
-							left_or_right=0, bottom_or_top=1)
-			for point in left_line:
-				cv2.circle(binary_img,(point[0],point[1]), 5, (255,0,0), -1)
-
 		
-		if right_x is not None:
-			cv2.circle(binary_img,(int(right_x),200), 5, (0,0,255), -1)
-		if left_x is not None:
-			cv2.circle(binary_img,(int(left_x),200), 5, (0,0,255), -1)
+		detect_line(eyeBird_binary=eyeBird_binary,threshold_num_point=8)
+
 		cv2.imshow('raw',image_np)
-		cv2.imshow('binary',binary_img)
-		print ('{} FPS'.format(1.0/(time.time() - stime)))
+		#print ('{} FPS'.format(1.0/(time.time() - stime)))
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
