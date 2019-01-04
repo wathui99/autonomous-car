@@ -12,7 +12,6 @@ def make_decide (binary_img,threshold_num_point=4):
 	midPoint_img = np.dstack((binary_img, binary_img, binary_img))*255 #cho hien thi anh
 
 	left_line,right_line=detect_line(binary_img,)
-
 	if (left_line is None) and (right_line is None):
 		print ('bad line')
 		return None,None
@@ -32,7 +31,7 @@ def make_decide (binary_img,threshold_num_point=4):
 	ImgShapeX=binary_img.shape[1]
 	ImgShapeY=binary_img.shape[0]
 
-	angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=60,ratioSpeed=1)
+	angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=65,ratioSpeed=1)
 
 	#print(angle,speed)
 	return angle,speed
@@ -56,11 +55,11 @@ def follow_one_line (binary_img,left_or_right):
 			for i in range(1,nLeft):
 				sumX+=left_line[i][0]
 			posX=int(sumX/nLeft)
-			posX+=55 #vi tri tu line den trung diem
+			posX+=47 #vi tri tu line den trung diem
 			print (posY,posX)
 			mid_point=np.array([posX,posY])
 			cv2.circle(midPoint_img,(int(mid_point[0]),int(mid_point[1])), 5, (0,0,255), -1)
-			angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=30,ratioSpeed=1)
+			angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=40,ratioSpeed=1)
 			cv2.imshow('mid_point', midPoint_img)
 			return angle,speed
 
@@ -78,11 +77,11 @@ def follow_one_line (binary_img,left_or_right):
 			for i in range(1,nRight):
 				sumX+=right_line[i][0]
 			posX=int(sumX/nRight)
-			posX-=55 #vi tri tu line den trung diem
+			posX-=47 #vi tri tu line den trung diem
 			print (posY,posX)
 			mid_point=np.array([posX,posY])
 			cv2.circle(midPoint_img,(int(mid_point[0]),int(mid_point[1])), 5, (0,0,255), -1)
-			angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=30,ratioSpeed=1)
+			angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=40,ratioSpeed=1)
 			cv2.imshow('mid_point', midPoint_img)
 			return angle,speed
 	cv2.imshow('mid_point', midPoint_img)

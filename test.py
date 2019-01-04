@@ -89,8 +89,8 @@ class image_feature:
         if (step==1 and time.time()-time_start_turn>=1.0): #turning complete
             step=0 #normal mode
 
-        if (turn_left>=10 or turn_right>=10):
-            if (turn_right>=10): #tin hieu re phai
+        if (turn_left>=8 or turn_right>=8):
+            if (turn_right>=8): #tin hieu re phai
                 angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=1)
                 if angle is not None and speed is not None:
                     self.speed.publish(speed)
@@ -98,7 +98,7 @@ class image_feature:
                     none=0
                 else:
                     none+=1
-                    if (none>=5): #re phai gap
+                    if (none>=2): #re phai gap
                         self.speed.publish(50)
                         self.angle.publish(30)
                         turn_right=0
@@ -107,7 +107,7 @@ class image_feature:
                         time_start_turn=time.time() #time count
                         step=1 #turning
                         print ('turning right')
-            if (turn_left>=10): #tin hieu re phai
+            if (turn_left>=8): #tin hieu re phai
                 angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=0)
                 if angle is not None and speed is not None:
                     self.speed.publish(speed)
@@ -115,7 +115,7 @@ class image_feature:
                     none=0
                 else:
                     none+=1
-                    if (none>=5): #re trai gap
+                    if (none>=2): #re trai gap
                         self.speed.publish(50)
                         self.angle.publish(-30)
                         turn_right=0
@@ -128,6 +128,10 @@ class image_feature:
             if (step==0): #normal mode
                 angle,speed=make_decide(eyeBird)
                 self.speed.publish(40)
+                if angle is None and speed is None:
+                    angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=0)
+                    if angle is None and speed is None:
+                        angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=1)
                 if angle is not None and speed is not None:
                     self.speed.publish(speed)
                     self.angle.publish(angle)
