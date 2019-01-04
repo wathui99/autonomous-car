@@ -1,0 +1,8 @@
+./flow --model ./cfg/tiny-yolo-voc-1c.cfg --load ./bin/tiny-yolo-voc.weights --train --annotation ./train/ban-sign --dataset ./train/00022
+
+chay dong tren voi:
+copy moi tiny-yolo-voc.weights
+./train/ban-sign la file chua annotation
+./train/00022 la file chua anh
+
+sua lai file cfg so luong class va so layer

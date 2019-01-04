@@ -37,6 +37,35 @@ def region_of_interest(img):
 
     return masked_image.astype(float)
 
+
+def mask_barrier (img,predicts):
+    # Define a blank matrix that matches the image height/width.
+    mask = np.zeros_like(img)
+
+    ret = img.copy()
+
+    # Create a match color with the same color channel counts.
+    match_mask_color = 255
+
+    for result in predicts:
+        if result['label'] == 'strange_object':
+
+            lower_left = [result['topleft']['x'],result['bottomright']['y']]
+            lower_right = [result['bottomright']['x'], result['bottomright']['y']]
+            top_left = [result['topleft']['x'], result['topleft']['y']]
+            top_right = [result['bottomright']['x'],result['topleft']['y']]
+
+            vertices = [np.array([lower_left,top_left,top_right,lower_right],dtype=np.int32)]
+            cv2.fillPoly(mask, vertices, match_mask_color)
+
+            # Returning the image only where mask pixels match
+            ret = cv2.bitwise_or(ret.astype(int), mask.astype(int))
+        else:
+            print(result['label'])	
+
+    return ret.astype(float)
+            
+
 def perspective_transform(img):
     """
     Execute perspective transform
@@ -62,7 +91,7 @@ def perspective_transform(img):
 
     return warped, unwarped, m, m_inv
 
-def get_processed_img (img):
+def get_processed_img (img,predicts=[]):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float)
 
     minThreshold = np.array([0, 0, 180])
@@ -83,9 +112,17 @@ def get_processed_img (img):
 
     roi_binary = region_of_interest(res_binary)
 
-    eyeBird_binary,_,_,_ = perspective_transform(roi_binary)
+    barier = None
+    if (len(predicts) > 0):
+        barier = mask_barrier(roi_binary,predicts)
 
-    return res_binary,roi_binary,eyeBird_binary
+    if barier is None:
+        eyeBird_binary,_,_,_ = perspective_transform(roi_binary)
+        return res_binary,roi_binary,eyeBird_binary
+    else:
+        eyeBird_binary,_,_,_ = perspective_transform(barier)
+        return res_binary,barier,eyeBird_binary
+
 
 if __name__ == '__main__':
     image_np=cv2.imread('difficult.png')

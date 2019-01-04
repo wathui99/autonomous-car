@@ -1,0 +1,3 @@
+strange_object
+turn_left
+turn_right
