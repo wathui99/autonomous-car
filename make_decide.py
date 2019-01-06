@@ -7,13 +7,13 @@ import matplotlib.image as mpimg
 import time
 
 
-def make_decide (binary_img,threshold_num_point=4):
+def make_decide (binary_img,threshold_num_point=4,strange_obj_flag=3):
 
 	midPoint_img = np.dstack((binary_img, binary_img, binary_img))*255 #cho hien thi anh
 
 	left_line,right_line=detect_line(binary_img,)
 	if (left_line is None) and (right_line is None):
-		print ('bad line')
+		#print ('bad line')
 		return None,None
 
 	suitLines = suit_lines(left_line,right_line)
@@ -21,7 +21,7 @@ def make_decide (binary_img,threshold_num_point=4):
 	mid_point = average_mid_point(mid_points)
 
 	if(mid_point is None):
-		print('bad midPoint')
+		#print('bad midPoint')
 		return None,None
 
 	cv2.circle(midPoint_img,(int(mid_point[0]),int(mid_point[1])), 5, (0,0,255), -1)
@@ -31,12 +31,17 @@ def make_decide (binary_img,threshold_num_point=4):
 	ImgShapeX=binary_img.shape[1]
 	ImgShapeY=binary_img.shape[0]
 
+	if (strange_obj_flag==0): #move right to avoid
+		mid_point[0]+=10
+	if (strange_obj_flag==2): #move left to avoid
+		mid_point[0]-=10
+
 	angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=65,ratioSpeed=1)
 
 	#print(angle,speed)
 	return angle,speed
 
-def follow_one_line (binary_img,left_or_right):
+def follow_one_line (binary_img,left_or_right,strange_obj_flag=3):
 	ImgShapeX=binary_img.shape[1]
 	ImgShapeY=binary_img.shape[0]
 
@@ -56,8 +61,14 @@ def follow_one_line (binary_img,left_or_right):
 				sumX+=left_line[i][0]
 			posX=int(sumX/nLeft)
 			posX+=47 #vi tri tu line den trung diem
-			print (posY,posX)
+			#print (posY,posX)
 			mid_point=np.array([posX,posY])
+
+			if (strange_obj_flag==0): #move right to avoid
+				mid_point[0]+=15
+			if (strange_obj_flag==2): #move left to avoid
+				mid_point[0]-=15
+
 			cv2.circle(midPoint_img,(int(mid_point[0]),int(mid_point[1])), 5, (0,0,255), -1)
 			angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=40,ratioSpeed=1)
 			cv2.imshow('mid_point', midPoint_img)
@@ -65,7 +76,7 @@ def follow_one_line (binary_img,left_or_right):
 
 	if (left_or_right==1):
 		right_line,nRight=detect_one_line(binary_img,left_or_right=1) #right
-		print (right_line,nRight)
+		#print (right_line,nRight)
 		if (nRight>0):
 			sumX=right_line[0][0] #gan khoi tao cho vi tri dau tien
 			posY=right_line[0][1] #gan cho vi tri cao nhat
@@ -78,8 +89,14 @@ def follow_one_line (binary_img,left_or_right):
 				sumX+=right_line[i][0]
 			posX=int(sumX/nRight)
 			posX-=47 #vi tri tu line den trung diem
-			print (posY,posX)
+			#print (posY,posX)
 			mid_point=np.array([posX,posY])
+
+			if (strange_obj_flag==0): #move right to avoid
+				mid_point[0]+=15
+			if (strange_obj_flag==2): #move left to avoid
+				mid_point[0]-=15
+
 			cv2.circle(midPoint_img,(int(mid_point[0]),int(mid_point[1])), 5, (0,0,255), -1)
 			angle,speed = caculate_angle_speed (ImgShapeX=ImgShapeX,ImgShapeY=ImgShapeY,midPoint=mid_point,ratioAngle=1,maxSpeed=40,ratioSpeed=1)
 			cv2.imshow('mid_point', midPoint_img)

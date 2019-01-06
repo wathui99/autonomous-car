@@ -27,6 +27,8 @@ from darkflow.net.build import TFNet
 from fillter import get_processed_img
 from make_decide import make_decide, follow_one_line
 
+from geometry import rectangle_in_roi
+
 stime = time.time()
 
 options = {
@@ -44,11 +46,16 @@ colors = [tuple(255 * np.random.rand(3)) for _ in range(10)]
 
 #out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 15, (320,240))
 
+#turning mode
 turn_left=0
 turn_right=0
 none=0
 step=0 #0 la do 2 line, 1 la do 1 line (tin hieu re)
 time_start_turn=0
+#avoid barier
+#0: left, 1: mid, 2: right, 3:ignore
+strange_obj_flag=3
+time_exist_strange_obj=time.time()
 
 class image_feature:
 
@@ -75,6 +82,8 @@ class image_feature:
         global stime
         global time_start_turn
         global step
+        global time_exist_strange_obj
+        global strange_obj_flag
         #print 'received image of type: "%s"' % ros_data.format
 
         #### direct conversion to CV2 ####
@@ -86,12 +95,17 @@ class image_feature:
 
         binary,roi,eyeBird=get_processed_img(img=image_np)
 
+        if (time.time()-time_exist_strange_obj >=0.3):
+            strange_obj_flag=3 #ignore (reset)
+            time_exist_strange_obj=time.time()
+            print ('object killed')
+
         if (step==1 and time.time()-time_start_turn>=1.0): #turning complete
             step=0 #normal mode
 
         if (turn_left>=8 or turn_right>=8):
             if (turn_right>=8): #tin hieu re phai
-                angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=1)
+                angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=1,strange_obj_flag=strange_obj_flag)
                 if angle is not None and speed is not None:
                     self.speed.publish(speed)
                     self.angle.publish(angle)
@@ -108,7 +122,7 @@ class image_feature:
                         step=1 #turning
                         print ('turning right')
             if (turn_left>=8): #tin hieu re phai
-                angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=0)
+                angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=0,strange_obj_flag=strange_obj_flag)
                 if angle is not None and speed is not None:
                     self.speed.publish(speed)
                     self.angle.publish(angle)
@@ -126,26 +140,15 @@ class image_feature:
                         print ('turning left')
         else:
             if (step==0): #normal mode
-                angle,speed=make_decide(eyeBird)
+                angle,speed=make_decide(binary_img=eyeBird,threshold_num_point=4,strange_obj_flag=strange_obj_flag)
                 self.speed.publish(40)
                 if angle is None and speed is None:
-                    angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=0)
+                    angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=0,strange_obj_flag=strange_obj_flag)
                     if angle is None and speed is None:
-                        angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=1)
+                        angle,speed=follow_one_line (binary_img=eyeBird,left_or_right=1,strange_obj_flag=strange_obj_flag)
                 if angle is not None and speed is not None:
                     self.speed.publish(speed)
                     self.angle.publish(angle)
-
-        
-        #angle,speed=make_decide(eyeBird)
-
-        #self.speed.publish(3)
-        #if angle is not None and speed is not None:
-            #self.speed.publish(speed)
-            #self.angle.publish(angle)
-            #none=0
-        #else:
-        	#none+=1
 
         binary_img = np.dstack((binary, binary, binary))*255
         roi_img = np.dstack((roi, roi, roi))*255
@@ -159,27 +162,27 @@ class image_feature:
             	turn_right+=1
             if result['label'] == 'turn_left':
                 turn_left+=1
+            if result['label'] == 'strange_object':
+                strange_obj_flag=rectangle_in_roi(result)
+                time_exist_strange_obj=time.time()
+                if(strange_obj_flag==0):
+                    print('left side')
+                if(strange_obj_flag==1):
+                    print('mid')
+                if(strange_obj_flag==2):
+                    print('right side')
+                if(strange_obj_flag==3):
+                    print('out')
             confidence = result['confidence']
             text = '{}:{:.0f}%'.format(label,confidence*100)
             frame = cv2.rectangle(image_np,tl,br,color,1)
             frame = cv2.putText(image_np,text,tl,cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2)
         
-        #if (angle is None) and (speed is None):
-            #if turn_left >= 5 and none >= 1:
-                #self.speed.publish(50)
-            	#self.angle.publish(-50)
-            	#turn_left = 0
-            	#turn_right = 0
-            #if turn_right >= 5 and none >=1:
-                #self.speed.publish(50)
-            	#self.angle.publish(50)
-            	#turn_left = 0
-            	#turn_right = 0
         cv2.imshow('raw',image_np)
         cv2.imshow('threshold',binary_img)
         cv2.imshow('roi',roi_img)
         cv2.imshow('eyeBird',eyeBird_img)
-        print('FPS {:.1f}'.format(1 / (time.time() - stime)))
+        #print('FPS {:.1f}'.format(1 / (time.time() - stime)))
         stime = time.time()
         cv2.waitKey(1)
 

@@ -91,3 +91,112 @@ def caculate_angle_speed (ImgShapeX,ImgShapeY,midPoint,ratioAngle,maxSpeed,ratio
 	else:
 		speed=maxSpeed * 0.5 * ratioSpeed
 	return angle,speed
+
+#kiem tra diem co nam trong tam giac hay ko
+def point_in_triangle (pt, v1, v2, v3):
+	b1=sign(pt,v1,v2)<0
+	b2=sign(pt,v2,v3)<0
+	b3=sign(pt,v3,v1)<0
+
+	return ((b1==b2) and (b2==b3))
+
+def sign (p1, p2, p3):
+	#(p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
+	return (float((p1['x']-p3['x'])*(p2['y']-p3['y'])) - float((p2['x']-p3['x'])*(p1['y']-p3['y'])))
+
+#return 0: nam ben trai
+#return 1: nam o giua
+#return 2: nam ben phai
+#return 3: khong nam trong vung roi
+
+
+#     L *A*********************B* M
+#       *  *                 *  *
+#       * *                   * *
+#       **                     **
+#     F *                       * C
+#       *                       *
+#     E ************************* D
+
+
+#      G ******** H
+#        *      *
+#      I ******** K
+def rectangle_in_roi (rec):
+	#rec['topleft']['x']
+	#rec['topleft']['y']
+	#rec['bottomright']['x']
+	#rec['bottomright']['y']
+
+	#rectangle
+	G={
+		'x':rec['topleft']['x'],
+		'y':rec['topleft']['y']
+	}
+	H={
+		'x':rec['bottomright']['x'],
+		'y':rec['topleft']['y']
+	}
+	K={
+		'x':rec['bottomright']['x'],
+		'y':rec['bottomright']['y']
+	}
+	I={
+		'x':rec['topleft']['x'],
+		'y':rec['bottomright']['y']
+	}
+
+	#ROI
+	A={
+		'x':50,
+		'y':70
+	}
+	B={
+		'x':270,
+		'y':70
+	}
+	C={
+		'x':320,
+		'y':160
+	}
+	D={
+		'x':320,
+		'y':240
+	}
+	E={
+		'x':0,
+		'y':240
+	}
+	F={
+		'x':0,
+		'y':160
+	}
+	L={
+		'x':0,
+		'y':100
+	}
+	M={
+		'x':320,
+		'y':100
+	}
+
+	#vung tren
+	if I['y'] < A['y']:
+		return 3
+	#vung nam trong tam giac ngoai
+	if point_in_triangle (I,B,M,C):
+		return 3
+	if point_in_triangle (K,L,A,F):
+		return 3
+	#xac dinh diem x giua hinh chu nhat
+	Xmid=abs(int((H['x']-G['x'])/2))+G['x']
+	#neu hinh chu nhat nam trong vung mid 320/2=160
+	if (abs(160-Xmid) <= 10):
+		return 1
+	#nam ben trai
+	if (160-Xmid) > 0:
+		return 0
+	#nam ben phai
+	if (160-Xmid) < 0:
+		return 2
+
